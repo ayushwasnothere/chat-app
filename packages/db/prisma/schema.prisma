@@ -19,7 +19,8 @@ model User {
   password String
   name String
   createdAt DateTime @default(now())
-  contacts Contact[]
+  contacts Contact[] @relation("authorRelation")
+  contactsOpp Contact[] @relation("contactRelation")
   messages Message[]
   conversations UserConversations[]
 }
@@ -27,9 +28,10 @@ model User {
 model Contact {
   id Int @id @default(autoincrement())
   contactName String
-  username String
+  contactId String
+  contactUser User @relation("contactRelation",fields:[contactId],references:[id])
   authorId String
-  author User @relation(fields: [authorId], references:[id])
+  author User @relation("authorRelation",fields: [authorId], references:[id])
 }
 
 model UserConversations {
