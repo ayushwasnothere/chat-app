@@ -1,16 +1,26 @@
 import WebSocket from "ws";
+import { getChannel, redisClient } from "./services/redis";
+import { createConnectionManager } from "./components/connectionManager";
 
-const wss = new WebSocket.Server({ port: 8080 });
+const start = async () => {
+  try {
+    await redisClient.connect();
+    const wss = new WebSocket.Server({ port: 8080 });
 
-wss.on("connection", (ws: WebSocket) => {
-  console.log("New client connected");
+    const { addConnection } = createConnectionManager();
 
-  ws.on("message", (message: string) => {
-    console.log(`Received message: ${message}`);
-    ws.send(`Server received your message: ${message}`);
-  });
+    wss.on("connection", async (ws, req) => {
+      try {
+        //TODO: add a get user function that checks the jwt and returns the user object
+        const user = { id: "dummmy" };
+        const channel = getChannel(user);
 
-  ws.on("close", () => {
-    console.log("Client disconnected");
-  });
-});
+        const { to, remove, isActive } = addConnection(user.id, ws);
+
+        if(isActive) redisClient.subscribe()
+      } catch (err) {}
+    });
+  } catch (err) {}
+};
+
+start();
