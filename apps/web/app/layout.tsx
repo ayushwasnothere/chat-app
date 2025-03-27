@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Provider } from "./providers";
 import { AppbarClient } from "./AppbarClient";
-import jwt from "jsonwebtoken";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -14,11 +13,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const token = jwt.sign({ id: "luffy" }, "secret");
   return (
     <html lang="en">
       <body>
-        <Provider token={token}>
+        <Provider>
           <AppbarClient />
           {children}
         </Provider>

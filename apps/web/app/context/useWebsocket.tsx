@@ -1,26 +1,36 @@
 "use client";
-import { createContext, useContext, useEffect, useRef } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 
 const WebsocketContext = createContext<WebSocket | null>(null);
 
 export const WebsocketProvider = ({
   children,
-  token,
 }: {
   children: React.ReactNode;
-  token: string;
 }) => {
   const ws = useRef<WebSocket | null>(null);
+  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    ws.current = new WebSocket("ws://localhost:8080?token=" + token);
+    async function startWs() {
+      try {
+        const res = await fetch("http://localhost:3000/api/user");
+        const data = await res.json();
+        setToken(data.token);
 
-    ws.current.onopen = () => {
-      console.log("Wensocket onn");
-      ws.current?.send(
-        JSON.stringify({ to: "nami", sender: "luffy", content: "hi nami" }),
-      );
-    };
+        ws.current = new WebSocket(`ws://localhost:8080?token=${data.token}`);
+
+        ws.current.onopen = () => {
+          console.log("WebSocket connected");
+          ws.current?.send(
+            JSON.stringify({ to: "nami", sender: "luffy", content: "hi nami" }),
+          );
+        };
+      } catch (error) {
+        console.error("Failed to get token");
+      }
+    }
+    startWs();
 
     return () => {
       if (ws.current) {
@@ -28,6 +38,7 @@ export const WebsocketProvider = ({
       }
     };
   }, []);
+
   return (
     <WebsocketContext.Provider value={ws.current}>
       {children}

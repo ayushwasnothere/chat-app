@@ -2,17 +2,20 @@
   "name": "websocket",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "./dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "tsc --build && node dist/index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@repo/db": "workspace:*",
-    "@types/jsonwebtoken": "^9.0.7",
-    "@types/uuid": "^10.0.0",
+    "@types/dotenv": "^8.2.3",
+    "axios": "^1.7.9",
+    "cookie": "^1.0.2",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^16.4.7",
     "jsonwebtoken": "^9.0.2",
     "redis": "^4.7.0",
     "uuid": "^10.0.0",
@@ -21,10 +24,15 @@
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
-    "@types/node": "^20",
-    "@types/ws": "^8.5.12",
-    "eslint": "^8",
+    "@types/axios": "^0.14.4",
+    "@types/cookie": "^1.0.0",
+    "@types/cookie-parser": "^1.4.8",
+    "@types/jsonwebtoken": "^9.0.8",
+    "@types/node": "^20.17.19",
+    "@types/uuid": "^10.0.0",
+    "@types/ws": "^8.5.14",
+    "eslint": "^8.57.1",
     "eslint-config-next": "14.2.6",
-    "typescript": "^5"
+    "typescript": "^5.7.3"
   }
 }

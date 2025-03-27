@@ -8,77 +8,89 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        username: {
-          label: "username",
-          type: "text",
-          placeholder: "username",
-          required: true,
-        },
+        username: { label: "Username", type: "text", required: true },
         password: { label: "Password", type: "password", required: true },
+        confirmPassword: { label: "Confirm Password", type: "password" },
+        name: { label: "Name", type: "text" },
+        mode: { label: "Mode", type: "text" },
       },
-      // TODO: User credentials type from next-aut
-      async authorize(credentials: any) {
-        // Do zod validation, OTP validation here
-        const hashedPassword = await bcrypt.hash(credentials.password, 10);
-        const existingUser = await db.user.findFirst({
-          where: {
-            username: credentials.username,
-          },
-        });
-
-        if (existingUser) {
-          const passwordValidation = await bcrypt.compare(
-            credentials.password,
-            existingUser.password,
-          );
-          if (passwordValidation) {
-            return {
-              id: existingUser.id,
-              name: existingUser.username,
-              username: existingUser.username,
-            };
-          }
-          return null;
+      //@ts-ignore
+      async authorize(credentials) {
+        if (!credentials?.username || !credentials?.password) {
+          throw new Error("Missing username or password");
         }
 
-        try {
-          const user = await db.user.create({
+        const { username, password, confirmPassword, name, mode } = credentials;
+
+        if (mode === "signup") {
+          if (!confirmPassword || !name) {
+            throw new Error("Missing required fields");
+          }
+          if (password !== confirmPassword) {
+            throw new Error("Passwords do not match");
+          }
+
+          const existingUser = await db.user.findUnique({
+            where: { username },
+          });
+          if (existingUser) {
+            throw new Error("Username already exists");
+          }
+
+          const hashedPassword = await bcrypt.hash(password, 10);
+          const newUser = await db.user.create({
             data: {
-              username: credentials.username,
+              username,
               password: hashedPassword,
-              name: credentials.username,
+              name: name,
             },
           });
 
           return {
-            id: user.id,
-            name: user.name,
-            username: user.username,
+            id: newUser.id,
+            name: newUser.name,
+            username: newUser.username,
           };
-        } catch (e) {
-          console.error(e);
         }
 
-        return null;
+        // **Sign-In Logic**
+        const user = await db.user.findUnique({ where: { username } });
+        if (!user) throw new Error("Invalid credentials");
+
+        const isValidPassword = await bcrypt.compare(password, user.password);
+        if (!isValidPassword) throw new Error("Invalid credentials");
+
+        return { id: user.id, name: user.name, username: user.username };
       },
     }),
   ],
-  session: {
-    strategy: "jwt",
-  },
-  jwt: {
-    secret: process.env.NEXTAUTH_SECRET,
-  },
+  session: { strategy: "jwt" },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.username = user.username;
       }
       return token;
     },
-    async session({ token, session, user }: any) {
-      session.user.id = token.id;
+    async session({ session, token }) {
+      session.user.id = token.id as string;
+      session.user.username = token.username as string;
       return session;
     },
+  },
+  secret: process.env.AUTH_SECRET,
+  cookies: {
+    sessionToken: {
+      name: "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+      },
+    },
+  },
+  pages: {
+    signIn: "/signin",
   },
 };

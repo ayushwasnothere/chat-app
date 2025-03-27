@@ -16,7 +16,10 @@ interface Contact {
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  const myId = session.user.id;
+  if (!session) {
+    return NextResponse.error();
+  }
+  const myId = session?.user.id;
   const data = await prisma.contact.findMany({
     where: {
       authorId: myId,
@@ -44,7 +47,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  const myId = session.user.id;
+  const myId = session?.user?.id as string;
   const payload: Payload = await req.json();
   const contact = await getOrCreateContact(
     payload.contactId,

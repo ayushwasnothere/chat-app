@@ -3,11 +3,24 @@
   "version": "0.0.0",
   "private": true,
   "exports": {
+    "./appbar": "./src/appbar.tsx",
+    "./authHeader": "./src/authHeader.tsx",
+    "./authTemplate": "./src/authTemplate.tsx",
+    "./bottomWarning": "./src/bottomWarning.tsx",
     "./button": "./src/button.tsx",
     "./card": "./src/card.tsx",
     "./code": "./src/code.tsx",
-    "./appbar": "./src/appbar.tsx",
-    "./chatbox": "./src/chatbox.tsx"
+    "./chatbox": "./src/chatbox.tsx",
+    "./errorBox": "./src/errorBox.tsx",
+    "./heading": "./src/heading.tsx",
+    "./inputBox": "./src/inputBox.tsx",
+    "./inputBoxV2": "./src/inputBoxV2.tsx",
+    "./quote": "./src/quote.tsx",
+    "./signinTemplate": "./src/signinTemplate.tsx",
+    "./signupTemplate": "./src/signupTemplate.tsx",
+    "./signupPage": "./src/signupPage.tsx",
+    "./signinPage": "./src/signinPage.tsx",
+    "./subHeading": "./src/subHeading.tsx"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",

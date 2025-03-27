@@ -1,16 +1,14 @@
 import { v4 as uuidv4 } from "uuid";
 import WebSocket from "ws";
 
-interface Room extends Map<string, WebSocket> {}
-interface Connections extends Map<string, Room> {}
+export interface Room extends Map<string, WebSocket> {}
+export interface Connections extends Map<string, Room> {}
 
-const getDefaultRoom = (
-  map: Connections,
-  key: string,
-  defaultValue: Room = new Map(),
-) => {
-  if (!map.has(key)) map.set(key, defaultValue);
-  return map.get(key);
+const getDefaultRoom = (map: Connections, key: string): Room => {
+  if (!map.has(key)) {
+    map.set(key, new Map());
+  }
+  return map.get(key) as Room;
 };
 
 export const createConnectionManager = () => {
@@ -26,13 +24,16 @@ export const createConnectionManager = () => {
     };
   };
 
-  const to = (room: Room) => (callback: () => void) => {
-    Array.from(room.values()).forEach(callback);
+  const to = (room: Room) => (callback: (ws: WebSocket) => void) => {
+    room.forEach(callback);
   };
 
   const remove =
     (room: Room, key: string, id: string) =>
-    (onRemoveConnection = () => {}, onRemoveRoom = () => {}) => {
+    (
+      onRemoveConnection: (ws: WebSocket) => void = () => {},
+      onRemoveRoom = () => {},
+    ) => {
       removeConnection(room, id, onRemoveConnection);
       removeRoom(room, key, onRemoveRoom);
     };

@@ -2,63 +2,101 @@ import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { authOptions } from "../../lib/auth";
 import db from "@repo/db/client";
+import { parseUrl } from "next/dist/shared/lib/router/utils/parse-url";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  const userId = session.user.id;
-  const data = await db.user.findUnique({
-    where: {
-      id: userId,
-    },
-    select: {
-      conversations: {
-        select: {
-          conversation: {
-            select: {
-              id: true,
-              participants: {
-                select: {
-                  user: {
-                    select: {
-                      username: true,
-                      id: true,
-                      name: true,
-                    },
-                  },
-                },
-              },
-              messages: {
-                select: {
-                  message: {
-                    select: {
-                      content: true,
-                      id: true,
-                      senderId: true,
-                    },
-                  },
-                },
+  const parsedUrl = parseUrl(req.url);
+  const convoId = parsedUrl.query.id;
+  if (!session) {
+    return NextResponse.json({
+      convoId,
+    });
+  }
+
+  if (convoId) {
+    const data = await db.conversation.findUnique({
+      where: {
+        id: convoId as string,
+      },
+      select: {
+        id: true,
+        name: true,
+        isGroup: true,
+        participants: {
+          where: {
+            userId: session?.user.id,
+          },
+          select: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                name: true,
               },
             },
           },
         },
+        messages: {
+          orderBy: { createdAt: "desc" },
+          take: 50,
+          select: {
+            id: true,
+            senderId: true,
+            content: true,
+            createdAt: true,
+          },
+        },
       },
-    },
-  });
-  const responseData = data?.conversations.map((c) => {
-    return {
-      conversationId: c.conversation.id,
-      participants: c.conversation.participants.map((p) => p.user),
-      messages: c.conversation.messages.map((m) => {
-        return {
-          messageId: m.message.id,
-          senderId: m.message.senderId,
-          content: m.message.content,
-        };
-      }),
-    };
-  });
+    });
+    if (!data) {
+      return NextResponse.json({
+        error: 403,
+        message: "conversation id doesnt exist",
+      });
+    }
+    return NextResponse.json(data);
+  }
 
-  return NextResponse.json({
-    conversations: responseData,
-  });
+  try {
+    const conversations = await db.conversation.findMany({
+      where: {
+        participants: {
+          some: {
+            userId: session?.user.id,
+          },
+        },
+      },
+      orderBy: { updatedAt: "desc" },
+      include: {
+        participants: {
+          select: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                name: true,
+              },
+            },
+          },
+        },
+        messages: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: {
+            id: true,
+            senderId: true,
+            content: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+    return NextResponse.json(conversations);
+  } catch (error: any) {
+    return NextResponse.json({
+      status: 500,
+      body: error?.message,
+    });
+  }
 }

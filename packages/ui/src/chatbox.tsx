@@ -26,9 +26,8 @@ export function Chatbox({
           console.log(ws);
           ws?.send(JSON.stringify(data));
         }}
-      >
-        Send
-      </Button>
+        label="Send"
+      />
     </div>
   );
 }
