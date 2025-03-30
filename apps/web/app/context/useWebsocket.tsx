@@ -14,17 +14,16 @@ export const WebsocketProvider = ({
   useEffect(() => {
     async function startWs() {
       try {
-        const res = await fetch("http://localhost:3000/api/user");
+        const res = await fetch("/api/users/me");
         const data = await res.json();
         setToken(data.token);
 
-        ws.current = new WebSocket(`ws://localhost:8080?token=${data.token}`);
+        ws.current = new WebSocket(
+          `${process.env.NEXT_PUBLIC_WSS_URL}?token=${data.token}`,
+        );
 
         ws.current.onopen = () => {
           console.log("WebSocket connected");
-          ws.current?.send(
-            JSON.stringify({ to: "nami", sender: "luffy", content: "hi nami" }),
-          );
         };
       } catch (error) {
         console.error("Failed to get token");

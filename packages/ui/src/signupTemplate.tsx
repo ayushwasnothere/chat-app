@@ -19,6 +19,7 @@ export interface SignupTemplateType {
   linkComponent: React.ComponentType<{
     href: string | UrlObject;
     children: React.ReactNode;
+    className?: string;
   }>;
   passwordsmatch: boolean;
   passwordcheck: boolean;

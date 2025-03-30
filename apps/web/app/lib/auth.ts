@@ -1,7 +1,8 @@
 import db from "@repo/db/client";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcrypt";
-import { NextAuthOptions } from "next-auth";
+import { getServerSession, NextAuthOptions } from "next-auth";
+import { NextRequest } from "next/server";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -53,7 +54,6 @@ export const authOptions: NextAuthOptions = {
           };
         }
 
-        // **Sign-In Logic**
         const user = await db.user.findUnique({ where: { username } });
         if (!user) throw new Error("Invalid credentials");
 
@@ -94,3 +94,11 @@ export const authOptions: NextAuthOptions = {
     signIn: "/signin",
   },
 };
+
+export async function getSessionOrThrow(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+  return session;
+}

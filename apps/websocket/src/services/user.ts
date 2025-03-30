@@ -1,7 +1,8 @@
 import { makeCookieJWT as makeCookieToken } from "../components/CookieMaker";
 import axios from "axios";
+import { logger } from "../components/logger";
 
-const userCurrentURI = `http://${process.env.API_SERVER_URL}/api/user`;
+const userCurrentURI = `${process.env.API_SERVER_URL}/api/users/me`;
 
 export const getCurrentUser = (token: string) => {
   return new Promise(async (resolve, reject) => {
@@ -12,7 +13,7 @@ export const getCurrentUser = (token: string) => {
       }
       resolve(data);
     } catch (err: any) {
-      console.log(err);
+      logger.error(`Error getting current user: ${err.message}`);
       reject({
         status: err.response?.status || 500,
         message: err.response?.statusText || "Internal Server Error",

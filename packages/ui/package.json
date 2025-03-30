@@ -20,7 +20,8 @@
     "./signupTemplate": "./src/signupTemplate.tsx",
     "./signupPage": "./src/signupPage.tsx",
     "./signinPage": "./src/signinPage.tsx",
-    "./subHeading": "./src/subHeading.tsx"
+    "./subHeading": "./src/subHeading.tsx",
+    "./logo": "./src/logo.tsx"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",

@@ -1,45 +1,25 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../lib/auth";
+import { getSessionOrThrow } from "../../lib/auth";
 import prisma from "@repo/db/client";
 import { NextRequest, NextResponse } from "next/server";
-import { parseUrl } from "next/dist/shared/lib/router/utils/parse-url";
-
-interface Payload {
-  toSendId: string;
-  content: string;
-}
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  const userId = session!.user.id;
-  const payload: Payload = await req.json();
-  const message = await prisma.message.create({
-    data: {
-      senderId: userId,
-      content: payload.content,
-      conversationId: await getOrCreateConversation(userId, payload.toSendId),
-    },
-    select: {
-      id: true,
-      senderId: true,
-      content: true,
-      createdAt: true,
-    },
-  });
-  return NextResponse.json(message);
-}
+  try {
+    const session = await getSessionOrThrow(req);
 
-export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    return NextResponse.error();
-  }
-  const parsedUrl = parseUrl(req.url);
-  const messageId = parsedUrl.query.id;
-  if (messageId) {
-    const message = await prisma.message.findUnique({
-      where: {
-        id: Number(messageId),
+    const { toId, content } = await req.json();
+    if (!toId || !content) {
+      return NextResponse.json(
+        { error: "Invalid request data" },
+        { status: 400 },
+      );
+    }
+
+    const conversationId = await getOrCreateConversation(session.user.id, toId);
+    const message = await prisma.message.create({
+      data: {
+        senderId: session.user.id,
+        content,
+        conversationId,
       },
       select: {
         id: true,
@@ -48,30 +28,77 @@ export async function GET(req: NextRequest) {
         createdAt: true,
       },
     });
-    return NextResponse.json(message);
+
+    return NextResponse.json(message, { status: 201 });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
-  const userId = session.user.id;
-  const messages = await prisma.message.findMany({
-    where: {
-      conversation: {
-        participants: {
-          some: {
-            userId,
-          },
-        },
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await getSessionOrThrow(req);
+
+    const url = new URL(req.url);
+    const username = url.searchParams.get("username");
+    const cursor = url.searchParams.get("cursor");
+    const limit = parseInt(url.searchParams.get("limit") || "20", 20);
+
+    if (!username) {
+      return NextResponse.json(
+        { error: "Username is required" },
+        { status: 400 },
+      );
+    }
+
+    const otherUser = await prisma.user.findUnique({
+      where: { username },
+      select: { id: true },
+    });
+
+    if (!otherUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const conversation = await prisma.conversation.findFirst({
+      where: {
+        AND: [
+          { participants: { some: { userId: session.user.id } } },
+          { participants: { some: { userId: otherUser.id } } },
+        ],
       },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-    select: {
-      id: true,
-      senderId: true,
-      content: true,
-      createdAt: true,
-    },
-  });
-  return NextResponse.json(messages);
+    });
+
+    if (!conversation) {
+      return NextResponse.json(
+        { error: "No conversation found" },
+        { status: 404 },
+      );
+    }
+
+    const messages = await prisma.message.findMany({
+      where: { conversationId: conversation.id },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      ...(cursor ? { skip: 1, cursor: { id: Number(cursor) } } : {}),
+      select: { id: true, senderId: true, content: true, createdAt: true },
+    });
+
+    const nextCursor =
+      messages.length === limit ? messages[messages.length - 1]?.id : null;
+
+    return NextResponse.json({ messages, nextCursor });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
+  }
 }
 
 async function getOrCreateConversation(
@@ -80,17 +107,14 @@ async function getOrCreateConversation(
 ): Promise<string> {
   const existingConversation = await prisma.conversation.findFirst({
     where: {
-      participants: {
-        every: {
-          userId: { in: [userId, toSendId] },
-        },
-      },
+      AND: [
+        { participants: { some: { userId } } },
+        { participants: { some: { userId: toSendId } } },
+      ],
     },
   });
 
-  if (existingConversation) {
-    return existingConversation.id;
-  }
+  if (existingConversation) return existingConversation.id;
 
   const newConversation = await prisma.conversation.create({
     data: {

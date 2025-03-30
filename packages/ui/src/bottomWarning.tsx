@@ -1,10 +1,12 @@
+import { UrlObject } from "url";
+
 interface BottomWarningType {
   label: string;
   link: string;
   linkText: string;
   LinkComponent: React.ComponentType<{
-    href: string;
-    className: string;
+    href: string | UrlObject;
+    className?: string;
     children: React.ReactNode;
   }>;
 }

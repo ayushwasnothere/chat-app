@@ -17,6 +17,7 @@ export interface SigninTemplateType {
   linkComponent: React.ComponentType<{
     href: string | UrlObject;
     children: React.ReactNode;
+    className?: string;
   }>;
 }
 

@@ -1,61 +1,36 @@
-import { v4 as uuidv4 } from "uuid";
-import WebSocket from "ws";
+import { WebSocket } from "ws";
+import { logger } from "./logger";
 
-export interface Room extends Map<string, WebSocket> {}
-export interface Connections extends Map<string, Room> {}
+const connections = new Map<string, Set<WebSocket>>();
 
-const getDefaultRoom = (map: Connections, key: string): Room => {
-  if (!map.has(key)) {
-    map.set(key, new Map());
+function addConnection(userId: string, ws: WebSocket) {
+  if (!connections.has(userId)) {
+    connections.set(userId, new Set());
   }
-  return map.get(key) as Room;
-};
+  connections.get(userId)?.add(ws);
+}
 
-export const createConnectionManager = () => {
-  const connections: Connections = new Map();
+function removeConnection(userId: string, ws: WebSocket) {
+  if (connections.has(userId)) {
+    connections.get(userId)?.delete(ws);
+    if (connections.get(userId)?.size === 0) {
+      connections.delete(userId);
+    }
+  }
+}
 
-  const add = (key: string, ws: WebSocket, id = uuidv4()) => {
-    const room = getDefaultRoom(connections, key);
-    room?.set(id, ws);
-    return {
-      to: to(room as Room),
-      remove: remove(room as Room, key as string, id as string),
-      isActive: room?.size === 1,
-    };
-  };
+function sendMessageToUser(userId: string, message: string) {
+  const userConnections = connections.get(userId);
+  if (userConnections && userConnections.size > 0) {
+    userConnections.forEach((ws) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(message);
+        logger.info(`Message sent to ${userId}: ${message}`);
+      }
+    });
+  } else {
+    logger.warn(`No active WebSocket connections for user ${userId}`);
+  }
+}
 
-  const to = (room: Room) => (callback: (ws: WebSocket) => void) => {
-    room.forEach(callback);
-  };
-
-  const remove =
-    (room: Room, key: string, id: string) =>
-    (
-      onRemoveConnection: (ws: WebSocket) => void = () => {},
-      onRemoveRoom = () => {},
-    ) => {
-      removeConnection(room, id, onRemoveConnection);
-      removeRoom(room, key, onRemoveRoom);
-    };
-
-  const removeConnection = (
-    room: Room,
-    id: string,
-    onRemoveConnection: (ws: WebSocket) => void,
-  ) => {
-    onRemoveConnection(room.get(id) as WebSocket);
-    room.delete(id);
-  };
-
-  const removeRoom = (
-    room: Room,
-    key: string,
-    onRemoveRoom: () => void,
-    force = false,
-  ) => {
-    if (!force && room.size > 0) return;
-    connections.delete(key);
-    onRemoveRoom();
-  };
-  return { addConnection: add };
-};
+export { addConnection, removeConnection, sendMessageToUser };

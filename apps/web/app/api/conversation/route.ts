@@ -1,73 +1,87 @@
-import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
-import { authOptions } from "../../lib/auth";
-import db from "@repo/db/client";
-import { parseUrl } from "next/dist/shared/lib/router/utils/parse-url";
+import { getSessionOrThrow } from "../../lib/auth";
+import prisma from "@repo/db/client";
 
-export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  const parsedUrl = parseUrl(req.url);
-  const convoId = parsedUrl.query.id;
-  if (!session) {
-    return NextResponse.json({
-      convoId,
-    });
-  }
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getSessionOrThrow(req);
 
-  if (convoId) {
-    const data = await db.conversation.findUnique({
+    const { userId } = await req.json();
+
+    if (!userId || userId === session.user.id) {
+      return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
+    }
+
+    if (
+      await prisma.blockedUser.findFirst({
+        where: { blockedId: userId, blockerId: session.user.id },
+      })
+    ) {
+      return NextResponse.json({ error: "User is blocked" }, { status: 403 });
+    }
+
+    const otherUser = await prisma.user.findUnique({
       where: {
-        id: convoId as string,
+        id: userId,
       },
-      select: {
-        id: true,
-        name: true,
-        isGroup: true,
-        participants: {
-          where: {
-            userId: session?.user.id,
-          },
-          select: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                name: true,
+    });
+
+    if (!otherUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const existingConversation = await prisma.conversationParticipant.findFirst(
+      {
+        where: {
+          OR: [
+            {
+              userId: session.user.id,
+              conversation: { participants: { some: { userId } } },
+            },
+            {
+              userId,
+              conversation: {
+                participants: { some: { userId: session.user.id } },
               },
             },
-          },
+          ],
         },
-        messages: {
-          orderBy: { createdAt: "desc" },
-          take: 50,
-          select: {
-            id: true,
-            senderId: true,
-            content: true,
-            createdAt: true,
-          },
+        include: { conversation: true },
+      },
+    );
+
+    if (existingConversation) {
+      return NextResponse.json(existingConversation.conversation);
+    }
+
+    const conversation = await prisma.conversation.create({
+      data: {
+        isGroup: false,
+        participants: {
+          create: [{ userId: session.user.id }, { userId }],
         },
       },
     });
-    if (!data) {
-      return NextResponse.json({
-        error: 403,
-        message: "conversation id doesnt exist",
-      });
-    }
-    return NextResponse.json(data);
-  }
 
+    return NextResponse.json(conversation);
+  } catch (error: any) {
+    console.error("Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function GET(req: NextRequest) {
   try {
-    const conversations = await db.conversation.findMany({
+    const session = await getSessionOrThrow(req);
+
+    const conversations = await prisma.conversation.findMany({
       where: {
         participants: {
           some: {
-            userId: session?.user.id,
+            userId: session.user.id,
           },
         },
       },
-      orderBy: { updatedAt: "desc" },
       include: {
         participants: {
           select: {
@@ -81,22 +95,17 @@ export async function GET(req: NextRequest) {
           },
         },
         messages: {
-          orderBy: { createdAt: "desc" },
-          take: 1,
-          select: {
-            id: true,
-            senderId: true,
-            content: true,
-            createdAt: true,
+          orderBy: {
+            createdAt: "desc",
           },
+          take: 1,
         },
       },
     });
+
     return NextResponse.json(conversations);
   } catch (error: any) {
-    return NextResponse.json({
-      status: 500,
-      body: error?.message,
-    });
+    console.error("Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

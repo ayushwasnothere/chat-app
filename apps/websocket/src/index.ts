@@ -1,26 +1,23 @@
 import dotenv from "dotenv";
 dotenv.config();
 import WebSocket from "ws";
-import { getChannel, redisClient } from "./services/redis";
-import { createConnectionManager } from "./components/connectionManager";
 import { getCurrentUser } from "./services/user";
 import { parse } from "url";
-
-// TODO: implement real user type
+import {
+  addConnection,
+  removeConnection,
+  sendMessageToUser,
+} from "./components/connectionManager";
+import { logger } from "./components/logger";
 
 const start = async () => {
   try {
-    await redisClient.connect();
     const wss = new WebSocket.Server({ port: 8080 }, () => {
       console.log("Server started on http://localhost:8080");
     });
 
-    const { addConnection } = createConnectionManager();
-
     wss.on("connection", async (ws, req) => {
       try {
-        // TODO: implement real user type
-
         const parsedUrl = parse(req.url || "", true);
         const token = parsedUrl.query.token as string;
         if (!token) {
@@ -31,27 +28,33 @@ const start = async () => {
 
         const user: any = await getCurrentUser(token);
         if (user) {
-          console.log(`User ${user.id} connected`);
+          logger.info(`User connected: ${user.id}`);
         }
 
-        const { to, remove, isActive } = addConnection(user.id, ws);
+        addConnection(user.id, ws);
 
-        if (isActive) {
-          ws.on("message", (message) => {
-            const data = JSON.parse(message.toString());
-            if (data.type === "SEND_MESSAGE") {
-              to((wsConn: WebSocket) => {
-                wsConn.send(JSON.stringify({ type: "RECEIVE_MESSAGE", data }));
-              });
+        ws.on("message", (data) => {
+          try {
+            const { senderId, toId } = JSON.parse(data.toString());
+            if (senderId !== user.id || toId === user.id) {
+              ws.send("Invalid format");
+              logger.warn(`Invalid format from user id: ${senderId}`);
+              return;
             }
-          });
-        }
+            if (toId) {
+              sendMessageToUser(toId, data.toString());
+              logger.info(`Message sent from ${user.id} to ${toId}`);
+            }
+          } catch (err: any) {
+            logger.error(`Error parsing message: ${err.message}`);
+          }
+        });
 
         ws.on("close", () => {
-          remove(
-            (wsConn: WebSocket) => wsConn.close(),
-            () => redisClient.unsubscribe(channel),
-          );
+          if (user) {
+            removeConnection(user.id, ws);
+            logger.info(`User disconnected: ${user.id}`);
+          }
         });
       } catch (err) {
         ws.close(1011, "Internal Server Error!");
