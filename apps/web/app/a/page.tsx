@@ -7,7 +7,6 @@ import {
   BiDotsVerticalRounded,
   BiArrowBack,
 } from "react-icons/bi";
-import { MdOutlineContactSupport } from "react-icons/md";
 import { BsX } from "react-icons/bs";
 import debounce from "lodash.debounce";
 import { formatTo24Hour, groupMessagesByDate } from "../lib/utils";
@@ -16,7 +15,7 @@ import { useWebsocket } from "../context/useWebsocket";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useSwipeable } from "react-swipeable";
-import { FiHelpCircle, FiMenu } from "react-icons/fi";
+import { FiMenu } from "react-icons/fi";
 import { FaGithub, FaInstagram, FaLinkedin, FaTwitter } from "react-icons/fa";
 import { TbSourceCode } from "react-icons/tb";
 import { Logo } from "@repo/ui/logo";

@@ -15,6 +15,7 @@ export const authOptions: NextAuthOptions = {
         name: { label: "Name", type: "text" },
         mode: { label: "Mode", type: "text" },
       },
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       //@ts-ignore
       async authorize(credentials) {
         if (!credentials?.username || !credentials?.password) {
@@ -96,6 +97,9 @@ export const authOptions: NextAuthOptions = {
 };
 
 export async function getSessionOrThrow(req: NextRequest) {
+  if (!req) {
+    throw new Error("No request");
+  }
   const session = await getServerSession(authOptions);
   if (!session) {
     throw new Error("Unauthorized");

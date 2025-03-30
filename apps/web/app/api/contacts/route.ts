@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authOptions, getSessionOrThrow } from "../../lib/auth";
-import { getServerSession } from "next-auth";
+import { getSessionOrThrow } from "../../lib/auth";
 import prisma from "@repo/db/client";
 
 export async function GET(req: NextRequest) {
@@ -18,7 +17,7 @@ export async function GET(req: NextRequest) {
         },
       },
     });
-    return NextResponse.json(contacts.map((c) => c.contact));
+    return NextResponse.json(contacts.map((c: any) => c.contact));
   } catch (error) {
     console.error("Error fetching contacts:", error);
     return NextResponse.json({ error: error }, { status: 500 });
@@ -74,4 +73,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error }, { status: 500 });
   }
 }
-
