@@ -217,7 +217,7 @@ export default function Dashboard() {
       <div className="flex flex-col items-center mt-20">
         <div
           onClick={() =>
-            window.open("https://github.com/ayushwasnothere/text-app", "_blank")
+            window.open("https://github.com/ayushwasnothere/chat-app", "_blank")
           }
           className="hover:scale-105 px-6 md:px-8 gap-3 flex items-center text-center w-full py-4 text-base font-semibold text-black/80 hover:bg-blue-50 hover:text-blue-500"
         >
