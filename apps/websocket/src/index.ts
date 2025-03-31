@@ -2,7 +2,6 @@ import dotenv from "dotenv";
 dotenv.config();
 import WebSocket from "ws";
 import { getCurrentUser } from "./services/user";
-import { parse } from "url";
 import {
   addConnection,
   removeConnection,
@@ -18,8 +17,8 @@ const start = async () => {
 
     wss.on("connection", async (ws, req) => {
       try {
-        const parsedUrl = parse(req.url || "", true);
-        const token = parsedUrl.query.token as string;
+        const url = new URL(req.url as string, `http://${req.headers.host}`);
+        const token = url.searchParams.get("token");
         if (!token) {
           console.error("Missing token");
           ws.close(1008, "Missing token");
@@ -57,12 +56,12 @@ const start = async () => {
           }
         });
       } catch (err: any) {
-        logger.error(`Error connecting: ${err}`);
+        logger.error(`Error connecting: ${JSON.stringify(err)}`);
         ws.close(1011, "Internal Server Error!");
       }
     });
   } catch (err) {
-    logger.error(`Error starting server: ${err}`);
+    logger.error(`Error starting server: ${JSON.stringify(err)}`);
   }
 };
 
