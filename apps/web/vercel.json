@@ -1,0 +1,7 @@
+{
+  "build": {
+    "cmd": "pnpm run build",
+    "cwd": "/"
+  },
+  "outputDirectory": ".next"
+}
