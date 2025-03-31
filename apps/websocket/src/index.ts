@@ -56,12 +56,13 @@ const start = async () => {
             logger.info(`User disconnected: ${user.id}`);
           }
         });
-      } catch (err) {
+      } catch (err: any) {
+        logger.error(`Error connecting: ${err}`);
         ws.close(1011, "Internal Server Error!");
       }
     });
   } catch (err) {
-    console.log(err);
+    logger.error(`Error starting server: ${err}`);
   }
 };
 
