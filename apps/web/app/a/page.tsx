@@ -153,49 +153,47 @@ export default function Dashboard() {
   const sendMessage = async () => {
     if (!writtenMessage.trim()) return;
 
-    ws.send(
-      JSON.stringify({
-        content: writtenMessage,
-        conversationId: activeChat.id,
-        toId: activeChat.isGroup
-          ? activeChat.id
-          : activeChat.participants[0].user.id === session?.user.id
-            ? activeChat.participants[1].user.id
-            : activeChat.participants[0].user.id,
-        senderId: session?.user.id,
-        createdAt: new Date().toISOString(),
-      }),
-    );
-    const res = await fetch(`/api/message`, {
-      method: "POST",
-      body: JSON.stringify({
-        content: writtenMessage,
-        toId: activeChat.isGroup
-          ? activeChat.id
-          : activeChat.participants[0].user.id === session?.user.id
-            ? activeChat.participants[1].user.id
-            : activeChat.participants[0].user.id,
-      }),
-    });
-    const data = await res.json();
+    const json = {
+      content: writtenMessage,
+      conversationId: activeChat.id,
+      toId: activeChat.isGroup
+        ? activeChat.id
+        : activeChat.participants[0].user.id === session?.user.id
+          ? activeChat.participants[1].user.id
+          : activeChat.participants[0].user.id,
+      senderId: session?.user.id,
+      createdAt: new Date().toISOString(),
+    };
+    const message = JSON.stringify(json);
+    ws.send(message);
+    setWrittenMessage("");
+
     setActiveChat((prev: any) => {
       return {
         ...prev,
-        messages: [...prev.messages, data],
+        messages: [...prev.messages, json],
       };
     });
+
     setChats((prev) =>
       prev.map((chat) =>
         chat.id === activeChat.id
           ? {
               ...chat,
-              messages: [...(chat.messages || []), data],
+              messages: [...(chat.messages || []), json],
             }
           : chat,
       ),
     );
 
-    setWrittenMessage("");
+    const res = await fetch(`/api/message`, {
+      method: "POST",
+      body: message,
+    });
+    const data = await res.json();
+    if (data.error) {
+      console.error(data.error);
+    }
   };
   if (status === "loading") {
     return <div></div>;
@@ -627,7 +625,7 @@ const ChatBubble = ({ message, type }: { message: any; type: "r" | "s" }) => {
       className={`flex items-start justify-start gap-2.5 mx-6 ${type === "s" ? "flex-row-reverse" : ""}`}
     >
       <div
-        className={`flex justify-between gap-4 max-w-[500px] leading-1.5 p-4 border-gray-200 ${type === "r" ? "bg-gray-100 rounded-bl-none text-gray-900" : "bg-indigo-600 rounded-br-none text-white"} rounded-2xl`}
+        className={`flex justify-between gap-4 max-w-[500px] leading-1.5 p-2 border-gray-200 ${type === "r" ? "bg-gray-100 rounded-bl-none text-gray-900" : "bg-indigo-600 rounded-br-none text-white"} rounded-2xl`}
       >
         <p className="text-sm font-normal">{message.content}</p>
         <span
