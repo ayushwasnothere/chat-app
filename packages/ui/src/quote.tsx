@@ -10,13 +10,12 @@ export const Quote = ({ quote, author, authorDescription }: QuoteProps) => {
       <div className="flex flex-col justify-center gap-4">
         <div className="font-bold text-3xl">
           {quote ||
-            "Blogging is not a business by itself. It is only a means of making you visible and getting recognized."}
+            "Like a raven’s call in the silent night, a message carries both mystery and meaning."}
         </div>
         <div>
-          <div className="font-bold text-xl">{author || "David Risley"}</div>
+          <div className="font-bold text-xl">{author || "The Raven"}</div>
           <div className="text-slate-400 text-md">
-            {authorDescription ||
-              "Professional Blogger and Online Entrepreneur"}
+            {authorDescription || ""}
           </div>
         </div>
       </div>
