@@ -133,4 +133,4 @@ Chat in real-time. Fast, sleek, and dependable.
 
 ---
 
-Built with ❤️ by[citxruzz](https://citxruzz.tech)
+Built with ❤️by [citxruzz](https://citxruzz.tech)
