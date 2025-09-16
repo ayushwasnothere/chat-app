@@ -40,7 +40,7 @@ export const SigninTemplate = ({
         <ErrorBox errObject={errObject} />
       </div>
       <div className="w-full flex flex-col gap-2 justify-center items-center">
-        <Button label="Sign up" onClick={onClickButton} />
+        <Button label="Sign in" onClick={onClickButton} />
         <BottomWarning
           label="Dont have an account? "
           link="/signup"
