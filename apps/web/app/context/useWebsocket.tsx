@@ -16,7 +16,7 @@ export const WebsocketProvider = ({
         const res = await fetch("/api/users/me");
         const data = await res.json();
         const socket = new WebSocket(
-          `wss://wss.raven.citxruzz.online?token=${data.token}`,
+          `${process.env.NEXT_PUBLIC_WSS_URL}?token=${data.token}`,
         );
 
         socket.onopen = () => {
